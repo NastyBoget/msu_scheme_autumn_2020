@@ -72,17 +72,21 @@
   
 ; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
 (define (many-replace replacement-pairs lst)
-        (cond ((null? lst) lst)
-              (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
-                      (cons (if pat-rep (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
-                                (car lst) ; иначе в начале ответа помещается начало списка без изменений
-                            )
-                            (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
-                        )
+  (let loop ((lst lst) (result '()))
+        (cond ((null? lst) result)
+               (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
+                       (loop (cdr lst)
+                             (append result
+                                     (list (if pat-rep (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
+                                                 (car lst) ; иначе в начале ответа помещается начало списка без изменений
+                                     ))
+                             )
+                       )
                      )
-               )
-         )
-  )
+                )
+        )
+    )
+)
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge)
@@ -92,7 +96,7 @@
                        (please continue)
                        (i completely understand you)
                        (would you like to tell me more about it?)
-                       (it is interesting, i should think more about it)
+                       (it is interesting and i should think more about it)
                        )
          )
 )
