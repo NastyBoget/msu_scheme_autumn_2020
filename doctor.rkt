@@ -13,18 +13,18 @@
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
-  (define answers null)
-  (newline)
-  (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-  (let ((user-response (read)))
-    (cond 
-      ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
-       (printf "Goodbye, ~a!\n" name)
-       (print '(see you next week)))
-      (else (print (reply user-response answers)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-            (cons answers user-response) ; сохраняем реплику пациента
-            (doctor-driver-loop name)
-            )
+  (let loop ((name name) (answers null))
+    (newline)
+    (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
+    (let ((user-response (read)))
+      (cond 
+        ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+         (printf "Goodbye, ~a!\n" name)
+         (print '(see you next week)))
+        (else (print (reply user-response answers)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+              (loop name (cons user-response answers))
+              )
+        )
       )
     )
   )
