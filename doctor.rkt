@@ -1,26 +1,45 @@
-; заготовка "Доктора". Август 2019
 #lang scheme/base
 ; В учебных целях используется базовая версия Scheme
-
 ; основная функция, запускающая "Доктора"
-; параметр name -- имя пациента
-(define (visit-doctor name)
-  (printf "Hello, ~a!\n" name)
-  (print '(what seems to be the trouble?))
-  (doctor-driver-loop name)
+; параметр stop-word -- стоп-слово для завершения работы доктора
+; параметр max-iter -- максимальное число обслуживаемых пациентов
+(define (visit-doctor stop-word max-iter)
+  (let loop ((name (ask-patient-name))
+             (iter max-iter))
+    (cond ((or (= iter 0) (equal? name stop-word)) (print  '(time to go home))) ; завершаем работу если приняли нужное количество пациентов или получили стоп-слово вместо имени
+          (else (printf "Hello, ~a!\n" name)
+                (print '(what seems to be the trouble?))
+                (doctor-driver-loop name)
+                (loop (if (= iter 1) name (ask-patient-name)) (- iter 1)) ; принимаем следующего пациента, на последней итерации имя следующего пациента не нужно
+                )
+          )
+    )
+  )
+
+; упражнение 5
+; ввод имени очередного пациента
+(define (ask-patient-name)
+  (begin
+    (println '(next!))
+    (println '(who are you?))
+    (print '**)
+    (car (read))
+    ) 
   )
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
+; параметр stop-word -- стоп-слово для завершения работы доктора
 (define (doctor-driver-loop name)
-  (let loop ((name name) (answers null))
+  (let loop ((name name) (answers null)) ; answers - список всех ответов пользователя
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
       (cond 
-        ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+        ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для завершения работы с данным пациентом
          (printf "Goodbye, ~a!\n" name)
-         (print '(see you next week)))
+         (print '(see you next week))
+         (newline))
         (else (print (reply user-response answers)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
               (loop name (cons user-response answers))
               )
@@ -29,9 +48,11 @@
     )
   )
 
-; генерация ответной реплики по user-response -- реплике от пользователя 
+; генерация ответной реплики по user-response -- реплике от пользователя
+; параметр user-response -- ответ пациента
+; параметр answers -- список сохраненных реплик пациента
 (define (reply user-response answers)
-  (case (if (null? answers) (random 2) (random 3)) ; с равной вероятностью выбирается один из трех способов построения ответа
+  (case (if (null? answers) (random 2) (random 3)) ; с равной вероятностью выбирается один из трех (или двух) способов построения ответа
     ((0) (qualifier-answer user-response)) ; 1й способ
     ((1) (hedge))  ; 2й способ
     ((2) (history-answer answers)) ; 3й способ
@@ -128,6 +149,6 @@
 ; 3й способ генерации ответной реплики -- возврат к репликам пациента, сказанным ранее
 (define (history-answer answers)
   (append '(earlier you said that)
-          (change-person (pick-random answers))
+          (change-person (pick-random answers)) ; выбираем произвользую фразу из сохраненных и производим в ней замену лица
           )
   )
