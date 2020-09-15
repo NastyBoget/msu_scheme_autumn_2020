@@ -31,7 +31,7 @@
 ; параметр name -- имя пациента
 ; параметр stop-word -- стоп-слово для завершения работы доктора
 (define (doctor-driver-loop name)
-  (let loop ((name name) (answers null)) ; answers - список всех ответов пользователя
+  (let loop ((name name) (answers null) (keywords (get-keywords))) ; answers - список всех ответов пользователя, keywords - список ключевых слов в templates
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
@@ -40,8 +40,8 @@
          (printf "Goodbye, ~a!\n" name)
          (print '(see you next week))
          (newline))
-        (else (print (reply user-response answers)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-              (loop name (cons user-response answers))
+        (else (print (reply user-response answers keywords)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+              (loop name (cons user-response answers) keywords)
               )
         )
       )
@@ -51,11 +51,14 @@
 ; генерация ответной реплики по user-response -- реплике от пользователя
 ; параметр user-response -- ответ пациента
 ; параметр answers -- список сохраненных реплик пациента
-(define (reply user-response answers)
-  (case (if (null? answers) (random 2) (random 3)) ; с равной вероятностью выбирается один из трех (или двух) способов построения ответа
+(define (reply user-response answers keywords)
+  (case (pick-random (cond ((null? answers) (if (contains-keyword user-response keywords) (list 0 1 3) (list 0 1)))
+                           ((contains-keyword user-response keywords) (list 0 1 2 3))
+                           (else (list 0 1 2)))) ; с равной вероятностью выбирается один из способов построения ответа
     ((0) (qualifier-answer user-response)) ; 1й способ
-    ((1) (hedge))  ; 2й способ
+    ((1) (hedge)) ; 2й способ
     ((2) (history-answer answers)) ; 3й способ
+    ((3) (template-answer user-response keywords)) ; 4й способ
     )
   )
 			
@@ -151,4 +154,102 @@
   (append '(earlier you said that)
           (change-person (pick-random answers)) ; выбираем произвользую фразу из сохраненных и производим в ней замену лица
           )
+  )
+
+; упражнение 6
+; 4й способ генерации ответной реплики
+(define (template-answer user-response keyword-list)
+  (let ((keyword
+         (pick-random ; случайный выбор ключевого слова для построения реплики
+          (extract-keywords user-response keyword-list) ; получение всех ключевых слов, встретившихся в реплике (с повторениями)))
+          )
+         )
+        )
+    (many-replace-2 ; замена * на ключевое слово
+     (list (list '* keyword))
+     (pick-random ; случайный выбор шаблона
+      (make-templates-list keyword) ; получение списка всех шаблонов, куда входит ключевое слово
+      )
+     )
+    )
+  )
+
+; получение списка всех ключевых слов, встретившихся в реплике пациента (с повторениями)
+(define (extract-keywords user-response keyword-list)
+  (filter (lambda (x)(member x keyword-list)) user-response)
+  )
+
+; получение списка ключевых слов из структуры templates (TODO сделать без повторений)!!!
+(define (get-keywords)
+  (foldl append
+         null
+         (map car templates))
+  )
+
+; получение объединённого перечня всех шаблонов, относящихся к каждой группе, куда входит ключевое слово
+(define (make-templates-list keyword)
+  (foldl append
+         null
+         (map (lambda (x) (cadr x))
+              (filter (lambda (y)(member keyword (car y)))
+                      templates)))
+  )
+
+; функция-предикат, проверяющая, есть ли в реплике пользователя ключевое слово
+(define (contains-keyword user-response keyword-list)
+  (ormap (lambda (y)
+           (ormap (lambda (x) (equal? x y))
+                  keyword-list))
+         user-response)
+  )
+
+; структура данных, хранящая группы ключевых слов и привязанных к ним шаблонов для составления ответных реплик
+(define templates
+  '( 
+    ( ; начало данных 1й группы
+     (depressed suicide exams university) ; список ключевых слов 1й группы
+     ( ; список шаблонов для составления ответных реплик 1й группы 
+      (when you feel depressed, go out for ice cream)
+      (depression is a disease that can be treated)
+      (your life is more important than studying)
+      (do not think about * so much)
+      )
+     ) ; завершение данных 1й группы
+    ( ; начало данных 2й группы
+     (mother father parents brother sister uncle ant grandma grandpa)
+     (
+      (tell me more about your * , i want to know all about your *)
+      (why do you feel that way about your * ?)
+      (does your * make you unhappy?)
+      (have your any difficulties with your * ?)
+      )
+     )
+    ( ; начало данных 3й группы
+     (university scheme lections exams)
+     (
+      (your education is important)
+      (how many time do you spend to learning?)
+      (you think so much about your *)
+      (do you think that * is really important for you?)
+      )
+     )
+    ( ; начало данных 4й группы
+     (love passion tenderness affection fondness)
+     (
+      (* is great feeling)
+      (were you happy when you felt * ?)
+      (all people love somebody)
+      (many people said me that they felt *)
+      )
+     )
+    ( ; начало данных 5й группы
+     (hatred disgust aversion contempt)
+     (
+      (how often do you feel * ?)
+      (try not to feel in that way)
+      (you should be more patient)
+      (all people make some mistakes, try not to judge them)
+      )
+     )
+    )
   )
