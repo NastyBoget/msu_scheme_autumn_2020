@@ -60,31 +60,44 @@
     )
 
   ; неэффективная реализация
-  (define (list-fib-squares-1 n)
+  (define (list-fib-squares n)
     (map (lambda (x)
            (let ((temp (fib x))) (* temp temp)))
          (enumerate-interval 1 n)))
 
   ; итерационная реализация
-  (define (list-fib-squares-2 n)
-    (let loop ((i n) (fib-n-1 1) (fib-n-2 0) (num 1) (result null))
-      (if (= i 0) (reverse result)
-          (let ((next-num (+ num 1)))
-                (loop (- i 1) (fib next-num) fib-n-1 next-num (cons (* fib-n-1 fib-n-1) result))))
-          ))
+  (define (list-fib-squares-a n)
+    (map (lambda (x) (* x x))
+         (let loop ((i n) (fib-n-1 1) (fib-n-2 0) (result null))
+           (if (= i 0) (reverse result)
+               (loop (- i 1) (+ fib-n-1 fib-n-2) fib-n-1 (cons fib-n-1 result)))
+           )
+         )
+    )
 
   ; итерационная реализация со сверткой
-  (define (list-fib-squares-3 n)
-    3
+  (define (list-fib-squares-b n)
+    (foldl (lambda (x y) (cons (* x x) y))
+           null
+           (let loop ((i n) (fib-n-1 1) (fib-n-2 0) (result null))
+             (if (= i 0) result
+                 (loop (- i 1) (+ fib-n-1 fib-n-2) fib-n-1 (cons fib-n-1 result)))
+             )
+           )
     )
 
   (define (process lst)
-    (let ((prod-first (foldl * 1 (car lst))))
-      (filter (lambda (x)(< prod-first (foldl + 0 x))) lst)))
+    (if (null? lst) null
+        (let ((prod-first (foldl * 1 (car lst))))
+          (filter (lambda (x)(< prod-first (foldl + 0 x))) (cdr lst)))
+        )
+    )
   
-  (print (list-fib-squares-1 10))
+  (print (list-fib-squares 10))
   (newline)
-  (print (list-fib-squares-2 10))
+  (print (list-fib-squares-a 10))
+  (newline)
+  (print (list-fib-squares-b 10))
   (newline)
   (print (process '((5) (1 2) () (3 4) (2 3) (2 3 4))))
   )
@@ -137,4 +150,64 @@
   (print (odd-fib-list-iter 10))
   (newline)
   (print (odd-fib-list-rec 10))
+  )
+
+;Опишите функцию (task-4-2020 h), которая для целых неотрицательных h возвращает совершенное двоичное дерево высоты h, такое что,
+;при каждой его вершине хранится число факториалу числа, равного расстоянию от этой вершины до корня дерева.
+;Положим, что высота пустого дерева равна 0, высота дерева из одного листа равна 1 и т. д.. 0!=1, 1!=1, 2!=2б 3!=6 и т. д..
+;В решении используйте функции работы с деревьями, введённые на лекции, реализующие векторное представление дерева.
+;Решение должно быть эффективным по вычислениям.
+;Созданное дерево должно быть таковым согласно стрелочной диаграмме, а не только согласно внешнему представлению, выводимому интерпретатором.
+;Примеры:
+;(task-4-2020 0) => #()
+;(task-4-2020 1) => #(1 #() #())
+;(task-4-2020 2) => #(1 #(1 #() #()) #(1 #() #()))
+;(task-4-2020 3) => #(1 #(1 #(2 #() #()) #(2 #() #())) #(1 #(2 #() #()) #(2 #() #())))
+
+(require racket/vector)
+
+(define (anketa-3-4-task-1)
+  (define empty-tree #())
+  (define make-tree vector)
+  (define (tree-data tree) (vector-ref tree 0))
+  (define (tree-left tree) (vector-ref tree 1))
+  (define (tree-right tree) (vector-ref tree 2)) 1
+  (define (tree-empty? t) (equal? t #()))
+  (define (task-4-2020 h)
+    (let loop ((h h) (iter 0) (fact 1))
+      (if (> h 0)
+          (let* ((next-h (- h 1)) (next-iter (+ iter 1)) (next-fact (* fact next-iter)))
+            (make-tree fact (loop next-h next-iter next-fact) (loop next-h next-iter next-fact)))
+          empty-tree
+          )
+      )
+    )
+  (print (task-4-2020 0))
+  (newline)
+  (print (task-4-2020 1))
+  (newline)
+  (print (task-4-2020 2))
+  (newline)
+  (print (task-4-2020 3))
+  (newline)
+  (print (task-4-2020 4))
+  )
+
+;С помощью уместных функций высшего порядка (map, foldl, foldr, filter, …) опишите функцию (task-03-2020 lst),
+;принимающую список из двух или более чем двух непустых подсписков чисел.
+;Функция вычисляет среднее геометрическое каждого подсписка, затем получившийся список средних рассматривает как геометрический вектор и возвращает его длину
+;[длина понимается в геометрическом смысле, в алгебраическом смысле это норма].
+;Пример:
+;(task-03-2020 (list (list 2 4 1) (list 2 2) (list 1 1 1 1 1 1 1))) => 3
+
+(define (anketa-3-4-task-2)
+  ; плохие случаи не рассматриваю
+  (define (task-03-2020 lst)
+    (sqrt
+     (foldl (lambda (x y) (+ y (* x x))) ; сумма квадратов
+            0
+            (map (lambda (x) (expt (foldl * 1 x) (/ 1 (length x)))) ; среднее геометрическое
+                 lst)))
+    )
+  (task-03-2020 (list (list 2 4 1) (list 2 2) (list 1 1 1 1 1 1 1)))
   )
