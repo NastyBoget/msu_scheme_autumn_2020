@@ -30,7 +30,8 @@
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
-  (let loop ((name name) (answers null) (keywords (get-keywords))) ; answers - список всех ответов пользователя, keywords - список ключевых слов в templates
+  ; answers - список всех ответов пользователя, keywords - список ключевых слов в templates, strategies - структура данных со сведениями обо всех стратегиях «Доктора»
+  (let loop ((name name) (answers null) (keywords (get-keywords)) (strategies strategies))
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
@@ -39,8 +40,8 @@
          (printf "Goodbye, ~a!\n" name)
          (print '(see you next week))
          (newline))
-        (else (print (reply user-response answers keywords)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-              (loop name (cons user-response answers) keywords)
+        (else (print (reply user-response answers keywords strategies)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+              (loop name (cons user-response answers) keywords strategies)
               )
         )
       )
@@ -51,14 +52,18 @@
 ; параметр user-response -- ответ пациента
 ; параметр answers -- список сохраненных реплик пациента
 ; параметр keywords -- список ключевых слов в templates
-(define (reply user-response answers keywords)
-  (case (pick-random (cond ((null? answers) (if (contains-keyword user-response keywords) (list 0 1 3) (list 0 1)))
-                           ((contains-keyword user-response keywords) (list 0 1 2 3))
-                           (else (list 0 1 2)))) ; с равной вероятностью выбирается один из способов построения ответа
-    ((0) (qualifier-answer user-response)) ; 1й способ
-    ((1) (hedge)) ; 2й способ
-    ((2) (history-answer answers)) ; 3й способ
-    ((3) (template-answer user-response keywords)) ; 4й способ
+; параметр strategies -- структура данных со сведениями обо всех стратегиях «Доктора»
+(define (reply user-response answers keywords strategies)
+  ; строится список стратегий, применимых в текущей ситуации
+  (let ((possible-strategies (foldl (lambda (x result) (if ((car x) user-response answers keywords) (cons (cdr x) result) result)) ; список из (weight, strategy) 
+                                    null
+                                    strategies)))
+    ; если в построенном списке больше одной стратегии, то выбирается одна из них
+    (if (> (length possible-strategies) 1)
+        ; выбранная стратегия применяется и её результат будет ответной репликой
+        ((pick-random-with-weight possible-strategies) user-response answers keywords)
+        ((car possible-strategies) user-response answers keywords) ; считаю, что стратегия всегда найдется
+        )
     )
   )
 			
@@ -252,4 +257,36 @@
       )
      )
     )
+  )
+
+; упражнение 7
+; (pick-random-with-weight '((3 7) (3 8) (2 9) (1 10)))
+; lst-with-weights -- список пар (вес, элемент)
+(define (pick-random-with-weight lst-with-weights)
+  (let ((weights (map (lambda (x) (car x)) lst-with-weights))
+        (lst (map (lambda (x) (cadr x)) lst-with-weights)))
+    ; weights - список натуральных чисел-весов для элементов lst
+    ; lst - список, элемент которого нужно выбрать с учетом веса
+    (list-ref lst
+              (list-ref
+               ; составляем новый список indexes, элементами которого будут индексы списка lst
+               ; если какой-то элемент списка lst индексом i имел вес n, то в indexes будет n элементов со значением i
+               (reverse (foldl append
+                               null
+                               (map (lambda (x)(build-list (list-ref weights x) (lambda (y) x)))
+                                    (build-list (length weights) values))))
+               (random (foldl + 0 weights)) ; сумма весов weights = длине списка indexes, выбираем индекс индекса списка lst
+               )
+              )
+    )
+  )
+
+; структура данных со сведениями обо всех стратегиях «Доктора»
+(define strategies
+  (list
+   (list (lambda (x y z) #t) 2 (lambda (repl history keywords) (qualifier-answer repl)))
+   (list (lambda (x y z) #t) 1 (lambda (repl history keywords) (hedge)))
+   (list (lambda (repl answers keywords) (not (null? answers))) 2 (lambda (repl answers keywords) (history-answer answers)))
+   (list (lambda (repl answers keywords) (contains-keyword repl keywords)) 3 (lambda (repl answers keywords) (template-answer repl keywords)))
+   )
   )
