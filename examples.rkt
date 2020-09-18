@@ -169,10 +169,6 @@
 (define (anketa-3-4-task-1)
   (define empty-tree #())
   (define make-tree vector)
-  (define (tree-data tree) (vector-ref tree 0))
-  (define (tree-left tree) (vector-ref tree 1))
-  (define (tree-right tree) (vector-ref tree 2)) 1
-  (define (tree-empty? t) (equal? t #()))
   (define (task-4-2020 h)
     (let loop ((h h) (iter 0) (fact 1))
       (if (> h 0)

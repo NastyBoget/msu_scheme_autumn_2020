@@ -29,7 +29,6 @@
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
-; параметр stop-word -- стоп-слово для завершения работы доктора
 (define (doctor-driver-loop name)
   (let loop ((name name) (answers null) (keywords (get-keywords))) ; answers - список всех ответов пользователя, keywords - список ключевых слов в templates
     (newline)
@@ -51,6 +50,7 @@
 ; генерация ответной реплики по user-response -- реплике от пользователя
 ; параметр user-response -- ответ пациента
 ; параметр answers -- список сохраненных реплик пациента
+; параметр keywords -- список ключевых слов в templates
 (define (reply user-response answers keywords)
   (case (pick-random (cond ((null? answers) (if (contains-keyword user-response keywords) (list 0 1 3) (list 0 1)))
                            ((contains-keyword user-response keywords) (list 0 1 2 3))
@@ -179,9 +179,9 @@
   (filter (lambda (x)(member x keyword-list)) user-response)
   )
 
-; получение списка ключевых слов из структуры templates (TODO сделать без повторений)!!!
+; получение списка ключевых слов из структуры templates (без повторений)
 (define (get-keywords)
-  (foldl append
+  (foldl (lambda (x y) (append (filter (lambda (z) (not (member z y))) x) y))
          null
          (map car templates))
   )
