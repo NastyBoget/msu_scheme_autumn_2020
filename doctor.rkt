@@ -31,7 +31,7 @@
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
   ; answers - список всех ответов пользователя, keywords - список ключевых слов в templates, strategies - структура данных со сведениями обо всех стратегиях «Доктора»
-  (let loop ((name name) (answers null) (keywords (get-keywords)) (strategies strategies))
+  (let loop ((name name) (answers null) (keywords get-keywords) (strategies strategies))
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
@@ -59,7 +59,7 @@
                                     null
                                     strategies)))
     ; если в построенном списке больше одной стратегии, то выбирается одна из них
-    (if (> (length possible-strategies) 1)
+    (if (and (not (null? possible-strategies)) (not (null? (cdr possible-strategies)))) ; если длина списка > 1
         ; выбранная стратегия применяется и её результат будет ответной репликой
         ((pick-random-with-weight possible-strategies) user-response answers keywords)
         ((car possible-strategies) user-response answers keywords) ; считаю, что стратегия всегда найдется
@@ -184,13 +184,6 @@
   (filter (lambda (x)(member x keyword-list)) user-response)
   )
 
-; получение списка ключевых слов из структуры templates (без повторений)
-(define (get-keywords)
-  (foldl (lambda (x y) (append (filter (lambda (z) (not (member z y))) x) y))
-         null
-         (map car templates))
-  )
-
 ; получение объединённого перечня всех шаблонов, относящихся к каждой группе, куда входит ключевое слово
 (define (make-templates-list keyword)
   (foldl append
@@ -259,25 +252,30 @@
     )
   )
 
+; получение списка ключевых слов из структуры templates (без повторений)
+(define get-keywords
+  (foldl (lambda (x y) (append (filter (lambda (z) (not (member z y))) x) y))
+         null
+         (map car templates)) ; список списков ключевых слов
+  )
+
 ; упражнение 7
 ; (pick-random-with-weight '((3 7) (3 8) (2 9) (1 10)))
 ; lst-with-weights -- список пар (вес, элемент)
 (define (pick-random-with-weight lst-with-weights)
-  (let ((weights (map (lambda (x) (car x)) lst-with-weights))
-        (lst (map (lambda (x) (cadr x)) lst-with-weights)))
-    ; weights - список натуральных чисел-весов для элементов lst
-    ; lst - список, элемент которого нужно выбрать с учетом веса
-    (list-ref lst
-              (list-ref
-               ; составляем новый список indexes, элементами которого будут индексы списка lst
-               ; если какой-то элемент списка lst индексом i имел вес n, то в indexes будет n элементов со значением i
-               (reverse (foldl append
-                               null
-                               (map (lambda (x)(build-list (list-ref weights x) (lambda (y) x)))
-                                    (build-list (length weights) values))))
-               (random (foldl + 0 weights)) ; сумма весов weights = длине списка indexes, выбираем индекс индекса списка lst
-               )
-              )
+  (let ((weight-sum (foldl (lambda (x y) (+ (car x) y)) 0 lst-with-weights))) ; находим сумму всех весов
+    (let loop ((cur-sum (random weight-sum))
+               (lst lst-with-weights))
+      (if (or (null? lst) (null? (car lst)))
+          null
+          (let ((cur-weight (caar lst)))
+            (if (> cur-weight cur-sum)
+                (cadar lst)
+                (loop (- cur-sum cur-weight) (cdr lst))
+                )
+            )
+          )
+      )
     )
   )
 
