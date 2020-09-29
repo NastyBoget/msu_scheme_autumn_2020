@@ -215,3 +215,139 @@
     )
   (task-03-2020 (list (list 2 4 1) (list 2 2) (list 1 1 1 1 1 1 1)))
   )
+
+; печать всех листьев дерева
+; (fringe-cps #(10 #(21 #(31 #() #()) #(32 #() #())) #(22 #() #(34 #() #()))) (lambda (x) x))
+(define (fringe-cps t cc)
+  (define (tree-data tree) (vector-ref tree 0))
+  (define (tree-left tree) (vector-ref tree 1))
+  (define (tree-right tree) (vector-ref tree 2))
+  (define (tree-empty? t) (equal? t #()))
+  (cond ((tree-empty? t) (cc '())) ((and (tree-empty? (tree-left t))
+                                         (tree-empty? (tree-right t))) (cc (list (tree-data t))))
+        (else (fringe-cps (tree-right t)
+                           (lambda (z) (fringe-cps (tree-left t)
+                                                    (lambda (y) (begin
+                                                                  (print "y")
+                                                                  (print y)
+                                                                  (print "z")
+                                                                  (print z)
+                                                                  (newline)
+                                                                  (cc (append y z)))))))))
+  )
+
+(define (tree-data tree) (vector-ref tree 0))
+(define (tree-left tree) (vector-ref tree 1))
+(define (tree-right tree) (vector-ref tree 2))
+(define (tree-empty? t) (equal? t #()))
+
+; обход дерева в ширину
+; (width-walk  #(10 #(21 #(31 #() #()) #(32 #() #())) #(22 #() #(34 #() #()))))
+(define (width-walk tree)
+  (let walk ((queue (list tree)))
+    (if (null? queue)
+        null
+        (begin
+          (if (not (tree-empty? (car queue)))
+              (begin (print (tree-data (car queue)))
+                     (if (null? (cdr queue)) (newline)
+                         (display " "))
+                     (walk
+                      (append (cdr queue) (list (tree-left (car queue)) (tree-right (car queue))))
+                      ))
+              (begin
+                (walk (cdr queue)))     
+              )
+          )
+        )
+    )
+  )
+
+; (print-tree  #(10 #(21 #(31 #() #()) #(32 #() #())) #(22 #() #(34 #() #()))))
+; (print-tree #(1 #(2 #(4 #(8 #() #()) #(9 #() #())) #(5 #() #())) #(3 #(6 #() #()) #(7 #() #()))))
+; проход каждый раз до нужного уровня от корня
+; рекурсивная версия
+(define (print-tree tree)
+  (define (print-list lst)
+    (if (null? lst)
+        (display "\n")
+        (begin (display (car lst))
+               (display " ")
+               (print-list (cdr lst))))
+    )
+  (let loop ((depth 0))
+    (let ((level-list (let print-level ((tree tree) (depth depth) (cur-depth 0))
+                        (cond ((or (> cur-depth depth) (tree-empty? tree)) '())
+                              ((= depth cur-depth)(list (tree-data tree)))
+                              (else (append (print-level (tree-left tree) depth (+ cur-depth 1))
+                                            (print-level (tree-right tree) depth (+ cur-depth 1)))))
+                        )
+                      ))
+      (if (null? level-list) (display "")
+          (begin
+            (print-list level-list)
+            (loop (+ depth 1))))
+      )
+    )
+  )
+
+;Опишите функцию (print-tree-by-level-asc tree).
+;Функция получает двоичное дерево в векторном представлении и печатает его по уровням --
+;каждый уровень на отдельной строке, значения при вершинах уровня слева направо через пробелы --
+;в порядке возрастания номеров уровней. Используйте стиль передачи остаточных вычислений,
+;чтобы всюду рекурсия была хвостовой.
+;Примеры:
+;(print-tree-by-level-asc #()) ->
+;
+;(print-tree-by-level-asc #(1 #() #())) ->
+;1
+;(print-tree-by-level-asc #(10 #(21 #() #()) #(22 #() #()))) ->
+;10
+;21 22
+;(print-tree-by-level-asc #(10 #(21 #(31 #() #()) #(32 #() #())) #(22 #() #(34 #() #())))) ->
+;10
+;21 22
+;31 32 34
+
+(require racket/vector)
+
+(define (anketa-5)
+  (define (tree-data tree) (vector-ref tree 0))
+  (define (tree-left tree) (vector-ref tree 1))
+  (define (tree-right tree) (vector-ref tree 2))
+  (define (tree-empty? t) (equal? t #()))
+  ; в стиле передачи продолжений
+  (define (print-tree-by-level-asc tree)
+    (define (print-list lst)
+      (if (null? lst)
+          (display "\n")
+          (begin (display (car lst))
+                 (display " ")
+                 (print-list (cdr lst))))
+      )
+    (let loop ((depth 0))
+      (let ((level-list (let print-level ((tree tree) (cur-depth 0) (cc (lambda (x) x)))
+                          (cond ((or (> cur-depth depth) (tree-empty? tree)) (cc '()))
+                                ((= depth cur-depth)(cc (list (tree-data tree))))
+                                (else (print-level
+                                       (tree-left tree) (+ cur-depth 1)
+                                       (lambda (y) (print-level (tree-right tree) (+ cur-depth 1)
+                                                                (lambda (z) (cc (append y z)))))))))))
+        (if (null? level-list) (display "")
+            (begin
+              (print-list level-list)
+              (loop (+ depth 1))))
+        )
+      )
+    )
+  
+  (print-tree-by-level-asc #())
+  (newline)
+  (print-tree-by-level-asc #(1 #() #()))
+  (newline)
+  (print-tree-by-level-asc #(10 #(21 #() #()) #(22 #() #())))
+  (newline)
+  (print-tree-by-level-asc #(10 #(21 #(31 #() #()) #(32 #() #())) #(22 #() #(34 #() #()))))
+  (newline)
+  (print-tree-by-level-asc #(1 #(2 #(4 #(8 #() #()) #(9 #() #())) #(5 #() #())) #(3 #(6 #() #()) #(7 #() #()))))
+  )
