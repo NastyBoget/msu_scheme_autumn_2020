@@ -94,11 +94,10 @@
 ;затем f2 к полученному результату (f1 х), и т. д. до fn.
 ;Реализуйте функцию taskV, считая, что хотя бы 1 аргумент обязательно должен быть в любом её вызове.
 ;((taskV (lambda (x) x) (lambda(x) (* x x))) 2) -> 4
-;((taskV (lambda (x) (+ x 1)) (lambda(x) (* x x)) (lambda(x) (* 3 x))) 1) -> 10
+;((taskV (lambda (x) (+ x 1)) (lambda(x) (* x x)) (lambda(x) (* 3 x))) 1) -> 12
 (define (taskV f1 . params)
   (let loop ((f f1) (params params))
     (if (null? params) f
-        (lambda (x) (f ((loop (car params) (cdr params)) x)))
-        )
+        (loop (lambda (x) ((car params) (f x))) (cdr params)))
     )
   )
