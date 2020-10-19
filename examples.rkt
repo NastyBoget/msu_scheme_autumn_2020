@@ -365,7 +365,7 @@
 ;Сложность вставки в очередь должна быть константой!
 (require scheme/mpair)
 ;('queue head tail)
-(define (anketa-6)
+(define (anketa-6-1)
   (define (make-queue) (mcons 'queue (mcons null null)))
   (define (front-queue q)
     (if (and (queue? q) (not (empty-queue? q)))
@@ -394,7 +394,7 @@
                      (mcdr (mcar (mcdr q))))))
         q)
     )
-  (define (queue? q) (and (mpair? q) (eq? 'queue (mcar q))))
+  (define (queue? q) (and (mpair? q) (eq? 'queue (mcar q)) (mpair? (mcdr q))))
   (define (empty-queue? q) (and (queue? q) (null? (mcar (mcdr q)))))
   (define ex (make-queue))
   (print ex)
@@ -450,4 +450,115 @@
   (newline)
   (print (empty-queue? ex))
   (newline)
+  )
+
+;Рассмотрим функцию (odd-abundant n), возвращающую n-й элемент последовательности нечётных избыточных чисел:
+;945, 1575, 2205, 2835, 3465, 4095, … .
+;Избыточным является любое натуральное число X, у которого сумма всех его натуральных делителей превышает 2*X.
+;Составьте код, реализующий (odd-abundant n) без мемоизации и (memo-odd-abundant n) с мемоизацией,
+;используя хеш-таблицы Racket-а:
+;(make-hash alist) – создание таблицы и заполнение её элементами по ассоциативному списку пар;
+;(hash-set! tbl key val) – вставка;
+;(hash-ref tbl key #f) – поиск, возвращающий #f при неуспехе.
+;Даёт ли мемоизированная версия выигрыш по сравнению с обычной? Если даёт, то какой и при каких условиях?
+(define (anketa-6-2)
+  ; вариант первый: зная, что первое число = 945,
+  ; все остальные получаем прибавляя 2 к предыдущему,
+  ; вычисляя разложение числа и сравнивая сумму делителей с числом 
+  (define (odd-abundant n) ; n > 0
+    ; получение списка делителей нечетного числа (за исключением самого числа)
+    (define (get-dividers x)
+      (filter (lambda (y) (= (remainder x y) 0)) (build-list (/ (- x 1) 2) add1))
+      )
+    (let loop ((cur-num 945) (iter n))
+      (if (= iter 1)
+          cur-num
+          (let next-num ((prev-num (+ cur-num 2)))
+            (if (> (foldl + 0 (get-dividers prev-num)) prev-num)
+                (loop prev-num (- iter 1))
+                (next-num (+ prev-num 2))
+                )
+            )
+          )
+      )
+    )
+  ; вариант второй - с мемоизацией:
+  ; пытаемся найти номер числа в хеш-таблице,
+  ; если не нашли, ищем число с наибольшим номером, который меньше требуемого.
+  ; таблица для сохранения нечетных избыточных чисел
+  (define odd-abundant-table (make-hash (list (cons 1 945))))
+  (define (memo-odd-abundant n) ; n > 0
+    ; получение списка делителей нечетного числа (за исключением самого числа)
+    (define (get-dividers x)
+      (filter (lambda (y) (= (remainder x y) 0)) (build-list (/ (- x 1) 2) add1))
+      )
+    ; нахождение числа с наибольшим номером, который меньше требуемого
+    (define (find-biggest num)
+      (let loop ((cur-num num) (res (hash-ref odd-abundant-table num #f)))
+        (if res
+            (list cur-num res)
+            (loop (- cur-num 1) (hash-ref odd-abundant-table (- cur-num 1) #f))
+            )
+        )
+      )
+    (let ((res (find-biggest n)))
+      (let loop ((cur-num (cadr res)) (iter (car res)))
+        (if (= iter n)
+            cur-num
+            (let next-num ((prev-num (+ cur-num 2)))
+              (if (> (foldl + 0 (get-dividers prev-num)) prev-num)
+                  (begin
+                    (hash-set! odd-abundant-table (add1 iter) prev-num)
+                    (loop prev-num (add1 iter)))
+                  (next-num (+ prev-num 2))
+                  )
+              )
+            )
+        )
+      )
+    )
+  
+  (print (odd-abundant 1))
+  (newline)
+  (print (odd-abundant 2))
+  (newline)
+  (print (odd-abundant 5))
+  (newline)
+  (print (odd-abundant 10))
+  (newline)
+  (print (odd-abundant 12))
+  (newline)
+  (print (odd-abundant 15))
+  (newline)
+  (print (odd-abundant 20))
+  (newline)
+  (newline)
+  (print (memo-odd-abundant 1))
+  (newline)
+  (print (memo-odd-abundant 2))
+  (newline)
+  (print (memo-odd-abundant 5))
+  (newline)
+  (print (memo-odd-abundant 10))
+  (newline)
+  (print (memo-odd-abundant 12))
+  (newline)
+  (print (memo-odd-abundant 15))
+  (newline)
+  (print (memo-odd-abundant 20))
+  (newline)
+  (newline)
+  (print (memo-odd-abundant 20))
+  (newline)
+  (print (memo-odd-abundant 15))
+  (newline)
+  (print (memo-odd-abundant 12))
+  (newline)
+  (print (memo-odd-abundant 10))
+  (newline)
+  (print (memo-odd-abundant 5))
+  (newline)
+  (print (memo-odd-abundant 2))
+  (newline)
+  (print (memo-odd-abundant 1))
   )
