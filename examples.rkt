@@ -461,21 +461,20 @@
 ;(hash-set! tbl key val) – вставка;
 ;(hash-ref tbl key #f) – поиск, возвращающий #f при неуспехе.
 ;Даёт ли мемоизированная версия выигрыш по сравнению с обычной? Если даёт, то какой и при каких условиях?
+(require math/number-theory)
+(require scheme/mpair)
 (define (anketa-6-2)
   ; вариант первый: зная, что первое число = 945,
   ; все остальные получаем прибавляя 2 к предыдущему,
   ; вычисляя разложение числа и сравнивая сумму делителей с числом 
   (define (odd-abundant n) ; n > 0
     ; получение списка делителей нечетного числа (за исключением самого числа)
-    (define (get-dividers x)
-      (filter (lambda (y) (= (remainder x y) 0)) (build-list (/ (- x 1) 2) add1))
-      )
     (let loop ((cur-num 945) (iter n))
       (if (= iter 1)
           cur-num
           (let next-num ((prev-num (+ cur-num 2)))
-            (if (> (foldl + 0 (get-dividers prev-num)) prev-num)
-                (loop prev-num (- iter 1))
+            (if (> (foldl + 0 (divisors prev-num)) (* 2 prev-num))
+                (loop prev-num (sub1 iter))
                 (next-num (+ prev-num 2))
                 )
             )
@@ -488,16 +487,12 @@
   ; таблица для сохранения нечетных избыточных чисел
   (define odd-abundant-table (make-hash (list (cons 1 945))))
   (define (memo-odd-abundant n) ; n > 0
-    ; получение списка делителей нечетного числа (за исключением самого числа)
-    (define (get-dividers x)
-      (filter (lambda (y) (= (remainder x y) 0)) (build-list (/ (- x 1) 2) add1))
-      )
     ; нахождение числа с наибольшим номером, который меньше требуемого
     (define (find-biggest num)
       (let loop ((cur-num num) (res (hash-ref odd-abundant-table num #f)))
         (if res
             (list cur-num res)
-            (loop (- cur-num 1) (hash-ref odd-abundant-table (- cur-num 1) #f))
+            (loop (sub1 cur-num) (hash-ref odd-abundant-table (sub1 cur-num) #f))
             )
         )
       )
@@ -506,7 +501,7 @@
         (if (= iter n)
             cur-num
             (let next-num ((prev-num (+ cur-num 2)))
-              (if (> (foldl + 0 (get-dividers prev-num)) prev-num)
+              (if (> (foldl + 0 (divisors prev-num)) (* 2 prev-num))
                   (begin
                     (hash-set! odd-abundant-table (add1 iter) prev-num)
                     (loop prev-num (add1 iter)))
@@ -531,34 +526,49 @@
   (print (odd-abundant 15))
   (newline)
   (print (odd-abundant 20))
+  )
+
+;Пусть вызов (left-rot! m0 m1 … mN) перераспределяет значения аргументов m0 m1 … mN,
+;являющихся именами, таким образом, что новое значение m0 = прежнему m1,
+;новое значение m1 = прежнему m2 и т. д., а новое значение mN = прежнему m0.
+;Пример: (let ((a 3) (b 2) (c 1)) (begin (left-rot! a b c) (/ a b c))) =>  2/3  
+;1) Реализуйте left-rot! функцией, если это возможно или обоснуйте, что это невозможно.
+;2) Реализуйте left-rot! макросом.
+;3) Если обе реализации возможны, то укажите, какая из них уместнее.
+(define (anketa-7)
+  ;реализация с помощью функции
+  (define (left-rot!-func m0 . params)
+    (define c m0)
+    (let loop ((m0 m0) (params params))
+      (if (null? params) (set! m0 c)
+          (begin
+            (set! m0 (car params))
+            (loop (car params) (cdr params)))
+          )
+      )
+    )
+  
+  ;реализация с помощью макроса
+  ;swap на каждой итерации
+  (define-syntax left-rot!
+    (syntax-rules ()
+      ((left-rot! m0) m0)
+      ((left-rot! m0 m1 m2 ...)
+       (let ((c m0))
+         (set! m0 m1)
+         (set! m1 c)
+         (left-rot! m1 m2 ...)))
+      )
+    )
+  (print (let ((a 3) (b 2) (c 1) (d 0)) (begin (left-rot!-func a b c d) (list a b c d))))
   (newline)
+  (print (let ((a 3) (b 2) (c 1) (d 0)) (begin (left-rot! a b c d) (list a b c d))))
   (newline)
-  (print (memo-odd-abundant 1))
+  (print (let ((a 3) (b 2) (c 1)) (begin (left-rot! a b c) (list a b c))))
   (newline)
-  (print (memo-odd-abundant 2))
+  (print (let ((b 2) (c 1)) (begin (left-rot! b c) (list b c))))
   (newline)
-  (print (memo-odd-abundant 5))
+  (print (let ((c 1)) (begin (left-rot! c) (list c))))
   (newline)
-  (print (memo-odd-abundant 10))
-  (newline)
-  (print (memo-odd-abundant 12))
-  (newline)
-  (print (memo-odd-abundant 15))
-  (newline)
-  (print (memo-odd-abundant 20))
-  (newline)
-  (newline)
-  (print (memo-odd-abundant 20))
-  (newline)
-  (print (memo-odd-abundant 15))
-  (newline)
-  (print (memo-odd-abundant 12))
-  (newline)
-  (print (memo-odd-abundant 10))
-  (newline)
-  (print (memo-odd-abundant 5))
-  (newline)
-  (print (memo-odd-abundant 2))
-  (newline)
-  (print (memo-odd-abundant 1))
+  (print (let ((a 3) (b 2) (c 1)) (begin (left-rot! a b c) (/ a b c))))
   )

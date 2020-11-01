@@ -1,4 +1,7 @@
 #lang scheme/base
+(require racket/string)
+(require racket/format)
+
 ; В учебных целях используется базовая версия Scheme
 ; основная функция, запускающая "Доктора"
 ; параметр stop-word -- стоп-слово для завершения работы доктора
@@ -6,9 +9,9 @@
 (define (visit-doctor stop-word max-iter)
   (let loop ((name (ask-patient-name))
              (iter max-iter))
-    (cond ((or (= iter 0) (equal? name stop-word)) (print  '(time to go home))) ; завершаем работу если приняли нужное количество пациентов или получили стоп-слово вместо имени
+    (cond ((or (= iter 0) (equal? name (~a stop-word))) (printf  "time to go home\n")) ; завершаем работу если приняли нужное количество пациентов или получили стоп-слово вместо имени
           (else (printf "Hello, ~a!\n" name)
-                (print '(what seems to be the trouble?))
+                (printf "what seems to be the trouble?")
                 (doctor-driver-loop name)
                 (loop (if (= iter 1) name (ask-patient-name)) (- iter 1)) ; принимаем следующего пациента, на последней итерации имя следующего пациента не нужно
                 )
@@ -16,14 +19,34 @@
     )
   )
 
+; Обработка строки
+; строка разбивается на предложения по . ! ?
+; каждое предложение разбивается на слова по пробелам, знаки препинания выделяются в отдельные слова
+; все символы, кроме букв, цифр и знаков препинания убираются
+; возвращается список списков: слова для каждого предложения
+(define (split-answer str)
+  (foldl (lambda (x y) (let ((sentence (filter (lambda (z) (not (equal? z ""))) (regexp-split #px"\\s+" x)))) ; разбиваем каждое предложение на слова
+                         (if (null? sentence) y (cons sentence y)))) ; пустые предложения удаляются
+         null
+         (regexp-split #px"[\\.\\?!]" ; разбиваем реплику на предложения
+                       (regexp-replace* #px"([\\)\\(;,\":'])" ; выделяем знаки препинания
+                                        (regexp-replace* #px"[^\\w\\.\\)\\(\\?!;,\":'\\s]+" str "") " \\1 ")))
+  )
+
+; соединяет список строк-слов в одну строку
+; знаки препинания прибавляются без пробела слева
+(define (join-answer lst)
+  (regexp-replace* #px"([\\)']) " (regexp-replace* #px" ([\\);,:'])" (string-join lst) "\\1") "\\1")
+  )
+
 ; упражнение 5
 ; ввод имени очередного пациента
 (define (ask-patient-name)
   (begin
-    (println '(next!))
-    (println '(who are you?))
+    (printf "next!\n")
+    (printf "who are you?\n")
     (print '**)
-    (car (read))
+    (read-line)
     ) 
   )
 
@@ -34,14 +57,15 @@
   (let loop ((name name) (answers null) (keywords get-keywords) (strategies strategies))
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-    (let ((user-response (read)))
+    (let ((user-response (read-line)))
       (cond 
-        ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для завершения работы с данным пациентом
+        ((equal? user-response "goodbye") ; реплика "goodbye" служит для завершения работы с данным пациентом
          (printf "Goodbye, ~a!\n" name)
-         (print '(see you next week))
-         (newline))
-        (else (print (reply user-response answers keywords strategies)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-              (loop name (cons user-response answers) keywords strategies)
+         (printf "see you next week\n"))
+         
+        (else (let ((answer (split-answer user-response)))
+                (printf (join-answer (reply (car answer) answers keywords strategies))) ; в качестве ответа пациента рассматриваем последнее предложение его реплики
+                (loop name (foldl cons answers answer) keywords strategies)) ; каждое предложение сохраняем в историю ответов
               )
         )
       )
@@ -69,16 +93,16 @@
 			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
-  (append (pick-random '((you seem to think that)
-                         (you feel that)
-                         (why do you believe that)
-                         (why do you say that)
-                         (i would like to know more about your story because)
-                         (if i am not mistaken you said that)
-                         (the way i see it you mean to say that))
-                       )
-          (change-person user-response)
-          )
+  (cons (pick-random '("you seem to think that"
+                       "you feel that"
+                       "why do you believe that"
+                       "why do you say that"
+                       "i would like to know more about your story because"
+                       "if i am not mistaken you said that"
+                       "the way i see it you mean to say that")
+                     )
+        (change-person user-response)
+        )
   )
 
 ; случайный выбор одного из элементов списка lst
@@ -88,17 +112,17 @@
 
 ; замена лица во фразе			
 (define (change-person phrase)
-  (many-replace-2 '((am are)
-                    (are am)
-                    (i you)
-                    (me you)
-                    (mine yours)
-                    (my your)
-                    (myself yourself)
-                    (you i)
-                    (your my)
-                    (yours mine)
-                    (yourself myself))
+  (many-replace-2 '(("am" "are")
+                    ("are" "am")
+                    ("i" "you")
+                    ("me" "you")
+                    ("mine" "yours")
+                    ("my" "your")
+                    ("myself" "yourself")
+                    ("you" "i")
+                    ("your" "my")
+                    ("yours" "mine")
+                    ("yourself" "myself"))
                   phrase)
   )
 
@@ -142,13 +166,13 @@
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge)
-  (pick-random '((please go on)
-                 (many people have the same sorts of feelings)
-                 (many of my patients have told me the same thing)
-                 (please continue)
-                 (i completely understand you)
-                 (would you like to tell me more about it?)
-                 (it is interesting and i should think more about it)
+  (pick-random '(("please go on")
+                 ("many people have the same sorts of feelings")
+                 ("many of my patients have told me the same thing")
+                 ("please continue")
+                 ("i completely understand you")
+                 ("would you like to tell me more about it?")
+                 ("it is interesting and i should think more about it")
                  )
                )
   )
@@ -156,9 +180,9 @@
 ; упражнение 4
 ; 3й способ генерации ответной реплики -- возврат к репликам пациента, сказанным ранее
 (define (history-answer answers)
-  (append '(earlier you said that)
-          (change-person (pick-random answers)) ; выбираем произвользую фразу из сохраненных и производим в ней замену лица
-          )
+  (cons "earlier you said that"
+        (change-person (pick-random answers)) ; выбираем произвользую фразу из сохраненных и производим в ней замену лица
+        )
   )
 
 ; упражнение 6
@@ -171,7 +195,7 @@
          )
         )
     (many-replace-2 ; замена * на ключевое слово
-     (list (list '* keyword))
+     (list (list "*" keyword))
      (pick-random ; случайный выбор шаблона
       (make-templates-list keyword) ; получение списка всех шаблонов, куда входит ключевое слово
       )
@@ -205,48 +229,48 @@
 (define templates
   '( 
     ( ; начало данных 1й группы
-     (depressed suicide exams university) ; список ключевых слов 1й группы
+     ("depressed" "suicide" "exams" "university") ; список ключевых слов 1й группы
      ( ; список шаблонов для составления ответных реплик 1й группы 
-      (when you feel depressed, go out for ice cream)
-      (depression is a disease that can be treated)
-      (your life is more important than studying)
-      (do not think about * so much)
+      ("when you feel depressed, go out for ice cream")
+      ("depression is a disease that can be treated")
+      ("your life is more important than studying")
+      ("do not think about" "*" "so much")
       )
      ) ; завершение данных 1й группы
     ( ; начало данных 2й группы
-     (mother father parents brother sister uncle ant grandma grandpa)
+     ("mother" "father" "parents" "brother" "sister" "uncle" "ant" "grandma" "grandpa")
      (
-      (tell me more about your * , i want to know all about your *)
-      (why do you feel that way about your * ?)
-      (does your * make you unhappy?)
-      (have your any difficulties with your * ?)
+      ("tell me more about your" "*" "," "i want to know all about your" "*")
+      ("why do you feel that way about your" "*" "?")
+      ("does your" "*" "make you unhappy?")
+      ("have your any difficulties with your" "*" "?")
       )
      )
     ( ; начало данных 3й группы
-     (university scheme lections exams)
+     ("university" "scheme" "lections" "exams")
      (
-      (your education is important)
-      (how many time do you spend to learning?)
-      (you think so much about your *)
-      (do you think that * is really important for you?)
+      ("your education is important")
+      ("how many time do you spend to learning?")
+      ("you think so much about your" "*")
+      ("do you think that" "*" "is really important for you?")
       )
      )
     ( ; начало данных 4й группы
-     (love passion tenderness affection fondness)
+     ("love" "passion" "tenderness" "affection" "fondness")
      (
-      (* is great feeling)
-      (were you happy when you felt * ?)
-      (all people love somebody)
-      (many people said me that they felt *)
+      ("*" "is great feeling")
+      ("were you happy when you felt" "*" "?")
+      ("all people love somebody")
+      ("many people said me that they felt" "*")
       )
      )
     ( ; начало данных 5й группы
-     (hatred disgust aversion contempt)
+     ("hatred" "disgust" "aversion" "contempt")
      (
-      (how often do you feel * ?)
-      (try not to feel in that way)
-      (you should be more patient)
-      (all people make some mistakes, try not to judge them)
+      ("how often do you feel" "*" "?")
+      ("try not to feel in that way")
+      ("you should be more patient")
+      ("all people make some mistakes, try not to judge them")
       )
      )
     )
@@ -260,7 +284,6 @@
   )
 
 ; упражнение 7
-; (pick-random-with-weight '((3 7) (3 8) (2 9) (1 10)))
 ; lst-with-weights -- список пар (вес, элемент)
 (define (pick-random-with-weight lst-with-weights)
   (let ((weight-sum (foldl (lambda (x y) (+ (car x) y)) 0 lst-with-weights))) ; находим сумму всех весов
