@@ -1,8 +1,8 @@
 #lang scheme/base
 (require racket/string)
 (require racket/format)
-(require racket/include)
-(include "spring.rkt")
+(require racket/require)
+(require "spring.rkt")
 
 ; В учебных целях используется базовая версия Scheme
 ; основная функция, запускающая "Доктора"
@@ -35,11 +35,10 @@
                                         (regexp-replace* #px"[^\\w\\.\\)\\(\\?!;,:'\\s\\-
 ]+" str "") " \\1 ")))
   )
-
 ; соединяет список строк-слов в одну строку
 ; знаки препинания прибавляются без пробела слева
 (define (join-answer lst)
-  (regexp-replace* #px"([\\)']) " (regexp-replace* #px" ([\\);,:'])" (string-join lst) "\\1") "\\1")
+  (regexp-replace* #px"([\\)']) " (regexp-replace* #px" ([\\);,:'\\.])" (string-join lst) "\\1") "\\1")
   )
 
 ; упражнение 5
@@ -312,5 +311,6 @@
    (list (lambda (x y z) #t) 1 (lambda (repl history keywords) (hedge)))
    (list (lambda (repl answers keywords) (not (null? answers))) 2 (lambda (repl answers keywords) (history-answer answers)))
    (list (lambda (repl answers keywords) (contains-keyword repl keywords)) 3 (lambda (repl answers keywords) (template-answer repl keywords)))
+   (list (lambda (repl answers keywords) (not (null? repl))) 5 (lambda (repl answers keywords) (compound-generator repl)))
    )
   )

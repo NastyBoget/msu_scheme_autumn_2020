@@ -1,11 +1,11 @@
 #lang scheme/base
 
 ; TODO
-; смешанная стратегия генерации ответов
 ; генерация реплики из нескольких предложений
 ; сохранение графов в файл и чтение графов из файла
 
 (require racket/string)
+(provide (all-defined-out))
 (define in (open-input-file "frankl.txt"))
 
 ; (n-1-gramma (hash: (next-word counter)))
@@ -32,6 +32,7 @@
 ; overall amount of n-1-gramm
 (define n-gram-counter 0)
 
+; разбиваем строку на предложения, а предложения на слова
 (define (split-line line)
   (foldl (lambda (x y) (let ((sentence (filter (lambda (z) (not (equal? z ""))) (regexp-split #px"\\s+" x)))) ; разбиваем каждое предложение на слова
                          (if (null? sentence) y (cons sentence y)))) ; пустые предложения удаляются
@@ -48,7 +49,7 @@
 ; каждую строку парсим на предложения и добавляем в граф
 (define (read-loop in)
   (let loop ((line (read-line in)))
-    (if (eof-object? line) null
+    (if (eof-object? line) (println "all structures created")
         (begin 
           (let ((sentences (split-line line)))
             (if (null? sentences) null
@@ -155,26 +156,83 @@
   )
 
 ; прямой способ генерации реплик
-(define (direct-generator)
-  (let ((n-1-gramma (pick-random-from-hash begin-graph)))
-    (let loop ((cur-n-gram n-1-gramma) (result null) (iter 100))
+(define (direct-generator first-n-gramma)
+    (let loop ((cur-n-gram first-n-gramma) (result null) (iter 100))
       (if (or (< iter 0) (equal? (car (reverse cur-n-gram)) "."))
           (append (reverse result) cur-n-gram)
           (loop (append (cdr cur-n-gram) (list (pick-random-from-hash (hash-ref next-graph cur-n-gram))))
                 (cons (car cur-n-gram) result) (sub1 iter)))
       )
-    )
   )
 
 ; обратный способ генерации реплик
-(define (reverse-generator)
-  (let ((n-1-gramma (pick-random-from-hash end-graph)))
-    (let loop ((cur-n-gram n-1-gramma) (result null) (iter 200))
+(define (reverse-generator first-n-gramma)
+    (let loop ((cur-n-gram first-n-gramma) (result null) (iter 200))
       (if (or (< iter 0) (equal? (car cur-n-gram) "."))
           (append (cdr cur-n-gram) result)
           (loop (cons (pick-random-from-hash (hash-ref prev-graph cur-n-gram)) (reverse (cdr (reverse cur-n-gram))))
                 (cons (car (reverse cur-n-gram)) result) (sub1 iter)))
       )
+  )
+
+; смешанный способ генерации реплик
+; sentence - предложение (список слов), на основе которого нужно построить реплику
+; ищем n-граммы, которые есть в графе всех n-грамм
+; если не нашли, ищем n-граммы, в которых встречается максимальное число слов из предложения
+; если не нашли - применяем прямой способ генерации
+; если нашли - наращиваем ответ с двух сторон с помощью двух графов
+(define (compound-generator sentence)
+  (define variants (make-hash)) ; варианты для начала построения ответных реплик
+  (let loop ((cur-sentence sentence)) ; получение всех n-грамм из предложения, их поиск в графе n-грамм тренировочного текста
+    (let ((n-1-gram (reverse (get-n-gram cur-sentence (sub1 n)))))
+      (if (< (length n-1-gram) (sub1 n))
+          null
+          (begin
+            (if (hash-has-key? frequency-graph n-1-gram)
+                (hash-set! variants n-1-gram (hash-ref frequency-graph n-1-gram))
+                null)
+            (loop (cdr cur-sentence))
+            ))
+      ))
+  (if (hash-empty? variants)
+      ; ищем n-граммы, в которых встречается максимальное число слов из предложения
+      (find-best-reply sentence)
+      ; генерация предложения на основе рандомно выбранной n-граммы
+      (let ((base-n-gramma (pick-random-from-hash variants)))
+        (append (reverse-generator base-n-gramma)
+                (list-tail (direct-generator base-n-gramma) (sub1 n)))
+        ))
+  )
+
+; ищем n-граммы, в которых встречается максимальное число слов из предложения
+; генерация предложения на основе рандомно выбранной n-граммы
+; если не нашли - применяем прямой способ генерации
+(define (find-best-reply sentence)
+  (define variants (make-hash)) ; варианты для начала построения ответных реплик
+  (define (update-variants graph-n-gram n-gram)
+    (if (= (foldl (lambda (x y) (if (member x graph-n-gram) (add1 y) y)) 0 n-gram) (length n-gram)) ; если все слова присутствуют в n-1-грамме графа frequency-graph
+        (hash-set! variants graph-n-gram (hash-ref frequency-graph graph-n-gram)) ; добавляем к вариатам ответа
+        null)
+    )
+  (let loop-1 ((word-number (sub1 n)))
+    (let loop-2 ((cur-sentence sentence))
+      (let ((n-gram (get-n-gram cur-sentence word-number))) ; не обращаем внимания на порядок слов
+        (if (or (< (length n-gram) word-number) (null? cur-sentence))
+            null
+            (begin
+              (map (lambda (x) (update-variants x n-gram)) (hash-keys frequency-graph))
+              (loop-2 (cdr cur-sentence))
+              ))
+        ))
+    (if (hash-empty? variants)
+        (if (> word-number 0)
+            (loop-1 (sub1 word-number))
+            (direct-generator (pick-random-from-hash begin-graph)))
+        (let ((base-n-gramma (pick-random-from-hash variants)))
+          (append (reverse-generator base-n-gramma)
+                  (list-tail (direct-generator base-n-gramma) (sub1 n)))
+          )
+        )
     )
   )
 
@@ -183,9 +241,18 @@
   (regexp-replace* #px"(') " (regexp-replace* #px" ([;,:'\\.])" (string-join lst) "\\1") "\\1")
   )
 
+; формируем все необходимые структуры данных
 (read-loop in)
 
-(define (test)
-  (println (join-string (direct-generator)))
+; тест для простых генераторов
+(define (test-1)
+  (println (join-string (direct-generator (pick-random-from-hash begin-graph))))
   (newline)
-  (println (join-string (reverse-generator))))
+  (println (join-string (reverse-generator (pick-random-from-hash end-graph)))))
+
+; тест для смешанного генератора
+(define (test-2)
+  (let ((sentence (read-line)))
+    (println (join-string (compound-generator (car (split-line sentence))))) ; основываемся на первом предложении
+    )
+  )
