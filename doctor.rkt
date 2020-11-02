@@ -1,6 +1,8 @@
 #lang scheme/base
 (require racket/string)
 (require racket/format)
+(require racket/include)
+(include "spring.rkt")
 
 ; В учебных целях используется базовая версия Scheme
 ; основная функция, запускающая "Доктора"
@@ -29,8 +31,9 @@
                          (if (null? sentence) y (cons sentence y)))) ; пустые предложения удаляются
          null
          (regexp-split #px"[\\.\\?!]" ; разбиваем реплику на предложения
-                       (regexp-replace* #px"([\\)\\(;,\":'])" ; выделяем знаки препинания
-                                        (regexp-replace* #px"[^\\w\\.\\)\\(\\?!;,\":'\\s]+" str "") " \\1 ")))
+                       (regexp-replace* #px"([\\)\\(;,:'])" ; выделяем знаки препинания
+                                        (regexp-replace* #px"[^\\w\\.\\)\\(\\?!;,:'\\s\\-
+]+" str "") " \\1 ")))
   )
 
 ; соединяет список строк-слов в одну строку
