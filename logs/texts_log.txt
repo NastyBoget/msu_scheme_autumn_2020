@@ -1,0 +1,73 @@
+> (visit-doctor 'bye 1)
+next!
+who are you?
+**Nasty
+Hello, Nasty!
+what seems to be the trouble?
+**i need to talk about my feelings
+i completely understand you
+**it is about love and relationship
+that must mean you really do love and care about you.
+**i feel a lot of lonely last time
+your friends care a lot of you and that's exactly where those shootings happen.
+**sometimes i miss my friends
+it sounds like you really miss your sweet beast.
+**i miss my family, i haven't seen them for a long time
+there's never too much: you can always find someone online or a therapist who you haven't had one in forever.
+**it is too hard to fall in love with somebody
+but, you can't help who you fall in love with.
+**but i have no regrets about the past
+i am glad you have no regrets.
+**i were super brave in relationship but now i'm afraid
+please continue
+**i have such good friends in my life
+im glad you have such good friends in your life, it makes plans for you.
+**but now nobody can help me with my trouble
+hope you find something that can help you with that amount and when you have you can repay them back.
+**i hope you can understand the need
+oh i can understand the feeling.
+**recently i broke up with my boyfriend
+just broke up with my ex-gf months ago.
+**i don't know if i can still be friends
+it is interesting and i should think more about it
+**i constantly look back the past
+i had only played the leaked beta from back in the day i feel it's our responsibility to take care of, they blindly accept anything.
+**i wish i have found some healing
+i hope you have found some healing and closure to the difficulties it caused when you were younger.
+**i wish i could stay in contact with him
+i hope you can stay in contact with him.
+**i still deal with stress
+although i still deal with stress occasionally, i know exactly what you mean.
+**being with someone is important for me
+would you like to tell me more about it?
+**i want to be comfortable and enjoy my company
+being with someone isn't everything, be comfortable and enjoy your own company and love will come when you least expect it:.
+**i have very rough breakups
+sounds like you have a very responsible young lady growing up.
+**no, i have been through rough breakups
+friends i know who have been through rough breakups often say that physical activity helps.
+**my friends can be annoying
+i hope you he changes some so you can still be friends.
+**i'm afraid of trying again
+please go on
+**may be i just need some time
+sometimes you just need some time and some growth before you can revisit mistakes that have happened.
+**but my mistakes is awful
+i can understand your feelings; but i suspect you made the right choice and you will always be glad you went.
+**i hope the pain will pass
+i'm sure with time the pain will pass.
+**but i become older and older
+no any more he is a lot older and does pretty good on his own, but the thing is he is always close by if we in the store together.
+**i am trying to forget all this working hard 
+many people have the same sorts of feelings
+**working hard helos me
+she is probably working hard to provide a better life for the family.
+**i need someone compassionate
+im always here if you need someone to join in, just let me know.
+**i hope i will have good relationship
+i hope you will have a lot of responsibility there.
+**goodbye
+Goodbye, Nasty!
+see you next week
+time to go home
+> 

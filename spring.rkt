@@ -1,12 +1,10 @@
 #lang scheme/base
 
-; TODO
-; генерация реплики из нескольких предложений
-; сохранение графов в файл и чтение графов из файла
-
 (require racket/string)
 (provide (all-defined-out))
-(define in (open-input-file "frankl.txt"))
+
+(define input-file "data/texts.txt")
+(define output-file "good_out.txt")
 
 ; (n-1-gramma (hash: (next-word counter)))
 (define next-graph (make-hash))
@@ -27,10 +25,7 @@
 
 ; size of n-gramm
 ; should be >= 2
-(define n 3)
-
-; overall amount of n-1-gramm
-(define n-gram-counter 0)
+(define n 5)
 
 ; разбиваем строку на предложения, а предложения на слова
 (define (split-line line)
@@ -47,7 +42,8 @@
 
 ; построчно читаем предложения из файла
 ; каждую строку парсим на предложения и добавляем в граф
-(define (read-loop in)
+(define (read-loop input-file)
+  (define in (open-input-file input-file))
   (let loop ((line (read-line in)))
     (if (eof-object? line) (println "all structures created")
         (begin 
@@ -60,6 +56,7 @@
                   (map add-sentence-to-prev-graph sentences))))
           (loop (read-line in))))
     )
+  (close-input-port in)
   )
 
 ; добавляем для данного предложения первую n-1-грамму в граф begin-graph
@@ -84,13 +81,11 @@
     (if (< (length n-gram) n)
         (let ((n-1-gram (reverse n-gram)) (next-word "."))
           (update-graph next-graph n-1-gram next-word)
-          (update-frequency-graph frequency-graph n-1-gram)
-          (set! n-gram-counter (add1 n-gram-counter)))
+          (update-frequency-graph frequency-graph n-1-gram))
         (begin
           (let ((next-word (car n-gram)) (n-1-gram (reverse (cdr n-gram))))
             (update-graph next-graph n-1-gram next-word)
-            (update-frequency-graph frequency-graph n-1-gram)
-            (set! n-gram-counter (add1 n-gram-counter)))
+            (update-frequency-graph frequency-graph n-1-gram))
           (add-sentence-to-next-graph (cdr sentence))
           )
         )
@@ -167,7 +162,7 @@
 
 ; обратный способ генерации реплик
 (define (reverse-generator first-n-gramma)
-    (let loop ((cur-n-gram first-n-gramma) (result null) (iter 200))
+    (let loop ((cur-n-gram first-n-gramma) (result null) (iter 100))
       (if (or (< iter 0) (equal? (car cur-n-gram) "."))
           (append (cdr cur-n-gram) result)
           (loop (cons (pick-random-from-hash (hash-ref prev-graph cur-n-gram)) (reverse (cdr (reverse cur-n-gram))))
@@ -241,8 +236,37 @@
   (regexp-replace* #px"(') " (regexp-replace* #px" ([;,:'\\.])" (string-join lst) "\\1") "\\1")
   )
 
-; формируем все необходимые структуры данных
-(read-loop in)
+; инициализация всех необходимых структур данных - либо формирование, либо чтение из файла
+(define (init-structures mode)
+  (if (equal? mode 'train)
+      ; формируем все необходимые структуры данных
+      (begin
+        (read-loop input-file)
+        (save-structures output-file))
+      ; загружаем готовое
+      (load-structures output-file)
+      )
+  )
+
+(define (save-structures output-file)
+  (define out (open-output-file output-file #:exists 'replace))
+  (write next-graph out)
+  (write prev-graph out)
+  (write begin-graph out)
+  (write end-graph out)
+  (write frequency-graph out)
+  (close-output-port out)
+  )
+
+(define (load-structures input-file)
+  (define in (open-input-file input-file))
+  (set! next-graph (read in))
+  (set! prev-graph (read in))
+  (set! begin-graph (read in))
+  (set! end-graph (read in))
+  (set! frequency-graph (read in))
+  (close-input-port in)
+  )
 
 ; тест для простых генераторов
 (define (test-1)
@@ -256,3 +280,5 @@
     (println (join-string (compound-generator (car (split-line sentence))))) ; основываемся на первом предложении
     )
   )
+
+;(init-structures 'train)

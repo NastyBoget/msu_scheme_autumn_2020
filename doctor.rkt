@@ -3,6 +3,7 @@
 (require racket/format)
 (require racket/require)
 (require "spring.rkt")
+(init-structures 'test)
 
 ; В учебных целях используется базовая версия Scheme
 ; основная функция, запускающая "Доктора"
@@ -311,6 +312,6 @@
    (list (lambda (x y z) #t) 1 (lambda (repl history keywords) (hedge)))
    (list (lambda (repl answers keywords) (not (null? answers))) 2 (lambda (repl answers keywords) (history-answer answers)))
    (list (lambda (repl answers keywords) (contains-keyword repl keywords)) 3 (lambda (repl answers keywords) (template-answer repl keywords)))
-   (list (lambda (repl answers keywords) (not (null? repl))) 5 (lambda (repl answers keywords) (compound-generator repl)))
+   (list (lambda (repl answers keywords) (not (null? repl))) 5 (lambda (repl answers keywords) (compound-generator (change-person repl))))
    )
   )
