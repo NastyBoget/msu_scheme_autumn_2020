@@ -572,3 +572,51 @@
   (newline)
   (print (let ((a 3) (b 2) (c 1)) (begin (left-rot! a b c) (/ a b c))))
   )
+
+;Считая описанными бесконечные потоки ones, ints, уместно используя подходящие
+; • базовые потоковые функции: stream-cons, stream-first, stream-rest, stream;
+; • потоковые функции высших порядков: stream-map, stream-filter, stream-fold;
+; • функции stream-scale, stream-sum и stream-mul, введённые на лекции,
+;опишите бесконечный поток степеней 3 и 7, упорядоченных по возрастанию: 1 3 7 9 27 49 81 …
+
+(require racket/stream)
+(require math/number-theory)
+
+(define (anketa-8)
+  (define (stream-scale s f) (stream-map (lambda (x) (* x f)) s))
+  ; описание потока с помощью порождающей функции
+  (define powers-3-7-1
+    (let pow-gen ((cur-pow 1) (pow-3 1) (pow-7 1))
+      (let* ((next-pow-3 (* pow-3 3)) (next-pow-7 (* pow-7 7)) (min-pow (min next-pow-3 next-pow-7)))
+      (stream-cons cur-pow (pow-gen min-pow
+                                    (if (= min-pow next-pow-3) next-pow-3 pow-3)
+                                     (if (= min-pow next-pow-7) next-pow-7 pow-7))))
+      )
+    )
+  ; неявное описание потока степеней (1 x x^2 x^3 ...)
+  (define (powers x)
+    (stream-cons 1 (stream-scale (powers x) x)))
+  ; слияние потоков в порядке возрастания значений
+  (define (interleave str1 str2)
+    (let ((s1 (stream-first str1)) (s2 (stream-first str2)))
+      (if (> s2 s1)
+          (stream-cons (stream-first str1) (interleave str2 (stream-rest str1)))
+          (stream-cons (stream-first str2) (interleave str1 (stream-rest str2))))))
+  ; неявное описание потока
+  (define powers-3-7-2
+    (interleave (powers 3) (stream-rest (powers 7)))
+    )
+  ; печать первых 10 элементов потока
+  (define (display-stream s)
+    (let loop ((iter 0))
+      (if (< iter 10)
+          (begin
+            (printf "~a " (stream-ref s iter))
+            (loop (add1 iter)))
+          (newline)
+          )
+      )
+    )
+  (display-stream powers-3-7-1)
+  (display-stream powers-3-7-2)
+  )
