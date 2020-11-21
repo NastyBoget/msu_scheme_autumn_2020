@@ -620,3 +620,50 @@
   (display-stream powers-3-7-1)
   (display-stream powers-3-7-2)
   )
+
+;Дана диаграмма классов для двоичных деревьев.
+;Составьте по ней код, используя библиотеку Racket/class.
+;В коде должны быть описаны классы и интерфейс, а также реализованы все операции классов Empty2tree и Nonempty2tree:
+;чеккер, геттеры, сеттеры и операция вывода тегов из вершин дерева.
+;При выводе тегов пустого дерева не выводится ничего.
+;При выводе тегов непустого дерева порядок таков: сначала выводятся теги правого потомка,
+;затем теги левого потомка, затем тег из корня.
+
+(require racket/class)
+(define (anketa-9)
+  (define 2tree-interface<%> (interface () isEmpty? printTree))
+  (define Nonempty2tree%
+    (class* object% (2tree-interface<%>)
+      (super-new)
+      (init-field tag)
+      (init-field data)
+      (field (left (new Empty2tree%)))
+      (field (right (new Empty2tree%)))
+      (define/public (isEmpty?) #f)
+      (define/public (printTree)
+        (send right printTree)
+        (send left printTree)
+        (printf "~a " tag)
+        )
+      (define/public (get-tag) tag)
+      (define/public (get-data) data)
+      (define/public (set-tag! t) (set! tag t))
+      (define/public (set-data! d) (set! data d))
+      (define/public (get-left) left)
+      (define/public (get-right) right)
+      (define/public (set-left! tr) (set! left tr))
+      (define/public (set-right! tr) (set! right tr))
+      )
+    )
+  (define Empty2tree%
+    (class* object% (2tree-interface<%>)
+      (super-new)
+      (define/public (isEmpty?) #t)
+      (define/public (printTree) (void))
+      )
+    )
+  (define tree (new Nonempty2tree% (data "СП") (tag 428)))
+  (send tree set-left! (new Nonempty2tree% (data "СП") (tag 427)))
+  (send (send tree get-left) set-left! (new Nonempty2tree% (data "СКИ") (tag 423)))
+  (send tree printTree)
+  )
