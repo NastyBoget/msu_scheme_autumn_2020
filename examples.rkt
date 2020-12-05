@@ -667,3 +667,18 @@
   (send (send tree get-left) set-left! (new Nonempty2tree% (data "СКИ") (tag 423)))
   (send tree printTree)
   )
+
+;((lambda (x) ((lambda (y) (/ x ((lambda (x)(* x 3)) y))) 6)) 9)
+;С помощью Y комбинатора, реализованного на Scheme, реализуйте функцию (n!!! i),
+;принимающую неотрицательное целое i и возвращающей i-й элемент из последовательности тройных факториалов Ni:
+;1, 1, 2, 3, 4, 10, 18, 28, 80, …, i*Ni-3, … . N0=1, N1=1, N2=2.
+;Вызов (n!!! i) должен порождать итеративный процесс.
+(define (anketa-10)
+  (define Y (lambda (f) ((lambda (x) (x x))
+                         (lambda (g) (f (lambda args (apply (g g) args)))))))
+
+  (define n!!! (lambda (n)
+                 ((Y (lambda (f) (lambda (i result) (if (< i 2) result (f (- i 3) (* i result)))))) n 1)))
+  
+  (n!!! 6)
+  )
